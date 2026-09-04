@@ -1,0 +1,26 @@
+{
+  "_comment": "Applied after 03 because an aggregation needs the clinic_appointment -> clinic_doctor relation to already exist. Blueprint upserts are a deep merge, so this only adds the aggregation and leaves the schema from file 01 untouched.",
+  "identifier": "clinic_doctor",
+  "title": "Doctor",
+  "icon": "User",
+  "schema": { "properties": {} },
+  "calculationProperties": {},
+  "mirrorProperties": {},
+  "relations": {},
+  "aggregationProperties": {
+    "confirmed_appointments": {
+      "title": "Confirmed appointments",
+      "icon": "Calendar",
+      "type": "number",
+      "target": "clinic_appointment",
+      "calculationSpec": {
+        "func": "count",
+        "calculationBy": "entities"
+      },
+      "query": {
+        "combinator": "and",
+        "rules": [{ "property": "status", "operator": "=", "value": "confirmed" }]
+      }
+    }
+  }
+}

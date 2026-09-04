@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Book an appointment · Northgate Clinic</title>
+    <meta name="description" content="Request an appointment at Northgate Clinic. We confirm your doctor and time by email." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;800&family=Instrument+Sans:wght@400;500;600&family=Space+Mono:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+
+  <body>
+    <header class="masthead">
+      <div class="masthead__mark" aria-hidden="true">
+        <span></span><span></span><span></span>
+      </div>
+      <div>
+        <p class="masthead__name">Northgate Clinic</p>
+        <p class="masthead__meta">Outpatient bookings · Mon–Sat</p>
+      </div>
+    </header>
+
+    <main class="stage">
+      <!-- ============================ FORM ============================ -->
+      <section class="panel" id="form-panel">
+        <h1 class="panel__title">Book an<br /><em>appointment</em></h1>
+        <p class="panel__lede">
+          Tell us who's coming in and what for. We'll match you to a doctor and email you the
+          confirmed time, usually within a minute.
+        </p>
+
+        <form id="booking-form" novalidate>
+          <fieldset class="group">
+            <legend class="group__legend"><span class="group__num">1</span> Who is this for</legend>
+
+            <div class="field">
+              <label for="full_name">Full name</label>
+              <input id="full_name" name="full_name" type="text" autocomplete="name" required />
+            </div>
+
+            <div class="field-row">
+              <div class="field">
+                <label for="email">Email</label>
+                <input id="email" name="email" type="email" autocomplete="email" required />
+                <p class="field__hint">We send the confirmation here.</p>
+              </div>
+              <div class="field field--narrow">
+                <label for="age">Age</label>
+                <input id="age" name="age" type="number" min="0" max="120" inputmode="numeric" />
+              </div>
+            </div>
+
+            <div class="field">
+              <label for="phone">Phone <span class="opt">optional</span></label>
+              <input id="phone" name="phone" type="tel" autocomplete="tel" />
+            </div>
+          </fieldset>
+
+          <fieldset class="group">
+            <legend class="group__legend"><span class="group__num">2</span> Which department</legend>
+            <div class="chips" id="departments" role="radiogroup" aria-label="Department">
+              <p class="chips__loading">Checking who's available…</p>
+            </div>
+          </fieldset>
+
+          <fieldset class="group">
+            <legend class="group__legend"><span class="group__num">3</span> When suits you</legend>
+            <div class="field">
+              <label for="date">Date</label>
+              <input id="date" name="date" type="date" required />
+            </div>
+            <div class="slots-section" id="slots-section" hidden>
+              <label>Available slots</label>
+              <div class="chips" id="slot-chips" role="radiogroup" aria-label="Time slot">
+                <p class="chips__loading">Pick a date to see slots…</p>
+              </div>
+              <p class="field__hint" id="slots-hint"></p>
+            </div>
+          </fieldset>
+
+          <fieldset class="group">
+            <legend class="group__legend"><span class="group__num">4</span> What's going on</legend>
+            <div class="field">
+              <label for="symptoms" class="sr-only">Reason for visit</label>
+              <textarea
+                id="symptoms"
+                name="symptoms"
+                rows="4"
+                required
+                placeholder="A few lines is plenty. For example: dry cough for five days, mild fever in the evenings."
+              ></textarea>
+            </div>
+          </fieldset>
+
+          <p class="urgent-note">
+            <strong>If this is an emergency</strong> — chest pain, trouble breathing, heavy bleeding,
+            sudden weakness — don't use this form. Go to the nearest emergency department or call
+            your local emergency number.
+          </p>
+
+          <p class="form-error" id="form-error" role="alert" hidden></p>
+
+          <button type="submit" class="submit" id="submit">
+            <span class="submit__label">Request appointment</span>
+          </button>
+        </form>
+      </section>
+
+      <!-- ============================ SLIP ============================ -->
+      <section class="slip" id="slip" hidden aria-live="polite">
+        <div class="slip__perf" aria-hidden="true"></div>
+        <div class="slip__body">
+          <p class="slip__head">NORTHGATE CLINIC — OUTPATIENT</p>
+
+          <dl class="slip__rows">
+            <div class="slip__row">
+              <dt>Reference</dt>
+              <dd id="slip-ref">—</dd>
+            </div>
+            <div class="slip__row">
+              <dt>Name</dt>
+              <dd id="slip-name">—</dd>
+            </div>
+            <div class="slip__row">
+              <dt>Department</dt>
+              <dd id="slip-dept">—</dd>
+            </div>
+            <div class="slip__row">
+              <dt>Requested</dt>
+              <dd id="slip-requested">—</dd>
+            </div>
+          </dl>
+
+          <div class="slip__status" id="slip-status" data-state="pending">
+            <span class="slip__dot" aria-hidden="true"></span>
+            <span id="slip-status-text">Awaiting triage</span>
+          </div>
+
+          <div class="slip__outcome" id="slip-outcome" hidden>
+            <dl class="slip__rows">
+              <div class="slip__row slip__row--big">
+                <dt>Doctor</dt>
+                <dd id="slip-doctor">—</dd>
+              </div>
+              <div class="slip__row slip__row--big">
+                <dt>Time</dt>
+                <dd id="slip-time">—</dd>
+              </div>
+              <div class="slip__row">
+                <dt>Room</dt>
+                <dd id="slip-room">—</dd>
+              </div>
+            </dl>
+          </div>
+
+          <p class="slip__message" id="slip-message"></p>
+
+          <p class="slip__foot" id="slip-foot">
+            Keep this reference. A confirmation email is on its way.
+          </p>
+
+          <button type="button" class="slip__again" id="book-again">Book another appointment</button>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <p>Northgate Clinic · 12 Northgate Road · Bengaluru</p>
+      <p>Demo system. Do not enter real medical information.</p>
+    </footer>
+
+    <script src="/app.js"></script>
+  </body>
+</html>

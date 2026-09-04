@@ -1,0 +1,128 @@
+{
+  "identifier": "clinic_book_appointment",
+  "title": "Book a patient appointment",
+  "description": "Front-desk intake form. Registers or updates the patient record and files a pending appointment. The triage agent picks it up automatically from there.",
+  "icon": "Calendar",
+  "category": "Clinic",
+  "allowAnyoneToViewRuns": true,
+  "nodes": [
+    {
+      "identifier": "trigger",
+      "variables": {},
+      "verbose": false,
+      "config": {
+        "type": "SELF_SERVE_TRIGGER",
+        "published": true,
+        "actionCardButtonText": "Book",
+        "executeActionButtonText": "Submit",
+        "permissions": { "roles": ["Member", "Admin"] },
+        "userInputs": {
+          "order": [
+            "patient_name",
+            "patient_email",
+            "patient_phone",
+            "patient_age",
+            "specialty",
+            "preferred_datetime",
+            "urgency",
+            "symptoms"
+          ],
+          "required": [
+            "patient_name",
+            "patient_email",
+            "specialty",
+            "preferred_datetime",
+            "symptoms"
+          ],
+          "properties": {
+            "patient_name": { "title": "Patient full name", "type": "string" },
+            "patient_email": { "title": "Email", "type": "string", "format": "email" },
+            "patient_phone": { "title": "Phone", "type": "string" },
+            "patient_age": { "title": "Age", "type": "number" },
+            "specialty": {
+              "title": "Department",
+              "type": "string",
+              "enum": ["paediatrics", "general_medicine", "dermatology", "orthopaedics", "cardiology", "ent"],
+              "enumColors": {
+                "paediatrics": "pink",
+                "general_medicine": "blue",
+                "dermatology": "orange",
+                "orthopaedics": "purple",
+                "cardiology": "red",
+                "ent": "turquoise"
+              }
+            },
+            "preferred_datetime": {
+              "title": "Preferred date & time",
+              "type": "string",
+              "format": "date-time"
+            },
+            "urgency": {
+              "title": "Urgency",
+              "type": "string",
+              "default": "routine",
+              "enum": ["routine", "soon", "urgent"],
+              "enumColors": { "routine": "lightGray", "soon": "orange", "urgent": "red" }
+            },
+            "symptoms": {
+              "title": "Reason for visit",
+              "type": "string",
+              "format": "multi-line",
+              "description": "What is the patient coming in for?"
+            }
+          }
+        }
+      }
+    },
+    {
+      "identifier": "upsert_patient",
+      "title": "Register / update patient",
+      "variables": {},
+      "verbose": true,
+      "config": {
+        "type": "UPSERT_ENTITY",
+        "blueprintIdentifier": "clinic_patient",
+        "onFailure": "terminate",
+        "mapping": {
+          "identifier": "{{ .outputs.trigger.patient_email | ascii_downcase | gsub(\"[^a-z0-9]\"; \"_\") }}",
+          "title": "{{ .outputs.trigger.patient_name }}",
+          "properties": {
+            "email": "{{ .outputs.trigger.patient_email | ascii_downcase }}",
+            "phone": "{{ .outputs.trigger.patient_phone // \"\" }}",
+            "age": "{{ .outputs.trigger.patient_age // null }}"
+          }
+        }
+      }
+    },
+    {
+      "identifier": "create_appointment",
+      "title": "File pending appointment",
+      "variables": {},
+      "verbose": true,
+      "config": {
+        "type": "UPSERT_ENTITY",
+        "blueprintIdentifier": "clinic_appointment",
+        "onFailure": "terminate",
+        "mapping": {
+          "identifier": "apt_{{ .workflowRun.identifier }}",
+          "title": "{{ .outputs.trigger.patient_name }} - {{ .outputs.trigger.specialty }}",
+          "properties": {
+            "status": "pending",
+            "source": "front_desk",
+            "requested_specialty": "{{ .outputs.trigger.specialty }}",
+            "requested_datetime": "{{ .outputs.trigger.preferred_datetime }}",
+            "symptoms": "{{ .outputs.trigger.symptoms }}",
+            "urgency": "{{ .outputs.trigger.urgency // \"routine\" }}"
+          },
+          "relations": {
+            "patient": "{{ .outputs.trigger.patient_email | ascii_downcase | gsub(\"[^a-z0-9]\"; \"_\") }}"
+          }
+        }
+      }
+    }
+  ],
+  "connections": [
+    { "sourceIdentifier": "trigger", "targetIdentifier": "upsert_patient" },
+    { "sourceIdentifier": "upsert_patient", "targetIdentifier": "create_appointment" }
+  ]
+}

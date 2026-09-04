@@ -1,0 +1,49 @@
+{
+  "identifier": "clinic_doctor",
+  "title": "Doctor",
+  "icon": "User",
+  "schema": {
+    "properties": {
+      "specialty": {
+        "title": "Specialty",
+        "type": "string",
+        "description": "Clinical department this doctor belongs to",
+        "enum": ["paediatrics", "general_medicine", "dermatology", "orthopaedics", "cardiology", "ent"],
+        "enumColors": {
+          "paediatrics": "pink",
+          "general_medicine": "blue",
+          "dermatology": "orange",
+          "orthopaedics": "purple",
+          "cardiology": "red",
+          "ent": "turquoise"
+        }
+      },
+      "email": { "title": "Email", "type": "string", "format": "email" },
+      "working_days": {
+        "title": "Working days",
+        "type": "array",
+        "description": "Lowercase 3-letter day codes, e.g. mon, tue, wed"
+      },
+      "shift_start": {
+        "title": "Shift start",
+        "type": "string",
+        "description": "24h local clinic time, HH:MM"
+      },
+      "shift_end": {
+        "title": "Shift end",
+        "type": "string",
+        "description": "24h local clinic time, HH:MM"
+      },
+      "slot_minutes": { "title": "Slot length (min)", "type": "number" },
+      "max_daily_appointments": { "title": "Max appointments/day", "type": "number" },
+      "accepting_new_patients": { "title": "Accepting new patients", "type": "boolean" },
+      "room": { "title": "Consulting room", "type": "string" },
+      "languages": { "title": "Languages", "type": "array" }
+    },
+    "required": ["specialty"]
+  },
+  "calculationProperties": {},
+  "aggregationProperties": {},
+  "mirrorProperties": {},
+  "relations": {}
+}

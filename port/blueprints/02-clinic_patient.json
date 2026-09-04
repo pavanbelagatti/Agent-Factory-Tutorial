@@ -1,0 +1,19 @@
+{
+  "identifier": "clinic_patient",
+  "title": "Patient",
+  "icon": "Users",
+  "schema": {
+    "properties": {
+      "email": { "title": "Email", "type": "string", "format": "email" },
+      "phone": { "title": "Phone", "type": "string" },
+      "age": { "title": "Age", "type": "number" },
+      "is_new_patient": { "title": "New patient", "type": "boolean" },
+      "notes": { "title": "Notes", "type": "string", "format": "markdown" }
+    },
+    "required": ["email"]
+  },
+  "calculationProperties": {},
+  "aggregationProperties": {},
+  "mirrorProperties": {},
+  "relations": {}
+}

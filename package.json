@@ -1,0 +1,19 @@
+{
+  "name": "clinic-portal",
+  "version": "1.0.0",
+  "description": "Public booking form for Northgate Clinic, backed by Port.io as the system of record and agent runtime.",
+  "type": "module",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "apply": "node port/apply.js",
+    "seed": "node scripts/seed-doctors.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2"
+  }
+}

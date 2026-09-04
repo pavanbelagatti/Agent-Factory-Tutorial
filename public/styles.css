@@ -1,0 +1,619 @@
+/* ==========================================================================
+   Northgate Clinic — booking form
+
+   Direction: the reception counter. Soft eucalyptus wall paint behind a sheet
+   of white paper. The confirmation is a thermal-printed token slip, perforated
+   edge and all, which fills in live as the triage agent works.
+
+   Palette
+     ink       #12241C   near-black with green in it, not neutral grey
+     wall      #DAE4DC   clinic wall paint
+     wall-deep #C4D2C6   shadow side of the same wall
+     paper     #FFFFFF
+     apothec   #0F6E4F   the one saturated colour, used for action only
+     amber     #B8791C   pending / in-flight
+     clay      #9E3B2B   rejected
+   ========================================================================== */
+
+:root {
+  --ink: #12241c;
+  --ink-soft: #4a5c52;
+  --ink-faint: #7d8d84;
+  --wall: #dae4dc;
+  --wall-deep: #c4d2c6;
+  --paper: #ffffff;
+  --apothec: #0f6e4f;
+  --apothec-dark: #0a5039;
+  --amber: #b8791c;
+  --clay: #9e3b2b;
+  --rule: #dfe6e1;
+
+  --display: 'Archivo', system-ui, sans-serif;
+  --body: 'Instrument Sans', system-ui, sans-serif;
+  --mono: 'Space Mono', ui-monospace, monospace;
+
+  --gutter: clamp(1.25rem, 4vw, 2.75rem);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: var(--body);
+  font-size: 16px;
+  line-height: 1.55;
+  color: var(--ink);
+  background:
+    radial-gradient(120% 80% at 50% 0%, var(--wall) 0%, var(--wall-deep) 100%) fixed;
+  display: flex;
+  flex-direction: column;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ---------------------------------------------------------------- masthead */
+
+.masthead {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 1.5rem var(--gutter) 0;
+  max-width: 44rem;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* Three bars of decreasing length — a queue, thinning out. */
+.masthead__mark {
+  display: grid;
+  gap: 4px;
+  flex: none;
+}
+.masthead__mark span {
+  display: block;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--apothec);
+}
+.masthead__mark span:nth-child(1) { width: 26px; }
+.masthead__mark span:nth-child(2) { width: 18px; opacity: 0.6; }
+.masthead__mark span:nth-child(3) { width: 10px; opacity: 0.3; }
+
+.masthead__name {
+  margin: 0;
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: 0.95rem;
+  letter-spacing: -0.01em;
+}
+.masthead__meta {
+  margin: 0;
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  color: var(--ink-faint);
+  letter-spacing: 0.02em;
+}
+
+/* ------------------------------------------------------------------- stage */
+
+.stage {
+  flex: 1;
+  width: 100%;
+  max-width: 44rem;
+  margin: 0 auto;
+  padding: 1.5rem var(--gutter) 3rem;
+}
+
+.panel {
+  background: var(--paper);
+  border-radius: 3px;
+  padding: clamp(1.5rem, 5vw, 3rem);
+  box-shadow:
+    0 1px 2px rgba(18, 36, 28, 0.06),
+    0 12px 32px -12px rgba(18, 36, 28, 0.18);
+}
+
+.panel__title {
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: clamp(2.1rem, 8vw, 3.1rem);
+  line-height: 0.95;
+  letter-spacing: -0.035em;
+  margin: 0 0 0.9rem;
+}
+.panel__title em {
+  font-style: normal;
+  color: var(--apothec);
+}
+
+.panel__lede {
+  margin: 0 0 2.25rem;
+  max-width: 32rem;
+  color: var(--ink-soft);
+  font-size: 1.02rem;
+}
+
+/* ------------------------------------------------------------------ groups */
+
+.group {
+  border: 0;
+  border-top: 1px solid var(--rule);
+  margin: 0 0 1.75rem;
+  padding: 1.5rem 0 0;
+}
+
+.group__legend {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0;
+  margin-bottom: 1.15rem;
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--ink-soft);
+}
+
+/* The numbers are real: this is a four-step intake, in order. */
+.group__num {
+  display: grid;
+  place-items: center;
+  width: 1.35rem;
+  height: 1.35rem;
+  flex: none;
+  border-radius: 50%;
+  background: var(--ink);
+  color: var(--paper);
+  font-size: 0.68rem;
+  letter-spacing: 0;
+}
+
+/* ------------------------------------------------------------------ fields */
+
+.field {
+  margin-bottom: 1rem;
+  min-width: 0;
+}
+.field:last-child {
+  margin-bottom: 0;
+}
+
+.field-row {
+  display: grid;
+  grid-template-columns: 1fr 6.5rem;
+  gap: 0.85rem;
+}
+.field-row .field {
+  margin-bottom: 1rem;
+}
+
+label {
+  display: block;
+  margin-bottom: 0.35rem;
+  font-size: 0.83rem;
+  font-weight: 600;
+  letter-spacing: 0.005em;
+}
+
+.opt {
+  font-weight: 400;
+  color: var(--ink-faint);
+  font-size: 0.78rem;
+}
+
+input,
+textarea {
+  width: 100%;
+  font-family: var(--body);
+  font-size: 1rem;
+  color: var(--ink);
+  background: #fbfcfb;
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+  padding: 0.65rem 0.75rem;
+  transition: border-color 0.14s, box-shadow 0.14s, background 0.14s;
+}
+
+textarea {
+  resize: vertical;
+  min-height: 5.5rem;
+}
+
+input:hover,
+textarea:hover {
+  border-color: #c9d4cd;
+}
+
+input:focus-visible,
+textarea:focus-visible {
+  outline: none;
+  background: var(--paper);
+  border-color: var(--apothec);
+  box-shadow: 0 0 0 3px rgba(15, 110, 79, 0.14);
+}
+
+.field__hint {
+  margin: 0.35rem 0 0;
+  font-size: 0.78rem;
+  color: var(--ink-faint);
+}
+
+/* ------------------------------------------------------------------- chips */
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.chips__loading,
+.chips__empty {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--ink-faint);
+  font-family: var(--mono);
+}
+
+.chip {
+  position: relative;
+}
+.chip input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+.chip span {
+  display: block;
+  cursor: pointer;
+  padding: 0.5rem 0.9rem;
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  font-size: 0.88rem;
+  font-weight: 500;
+  background: #fbfcfb;
+  transition: all 0.14s;
+  user-select: none;
+}
+.chip span:hover {
+  border-color: var(--apothec);
+  color: var(--apothec);
+}
+.chip input:checked + span {
+  background: var(--apothec);
+  border-color: var(--apothec);
+  color: var(--paper);
+}
+.chip input:focus-visible + span {
+  outline: 2px solid var(--apothec);
+  outline-offset: 2px;
+}
+
+/* --------------------------------------------------------------- slots */
+
+.slots-section {
+  margin-top: 1rem;
+}
+
+.slots-section label {
+  display: block;
+  margin-bottom: 0.35rem;
+  font-size: 0.83rem;
+  font-weight: 600;
+}
+
+.chip-detail {
+  display: block;
+  font-size: 0.7rem;
+  font-weight: 400;
+  opacity: 0.7;
+  margin-top: 1px;
+}
+
+.chips--slots {
+  gap: 0.4rem;
+}
+
+.chips--slots .chip span {
+  padding: 0.45rem 0.7rem;
+  font-size: 0.82rem;
+  text-align: center;
+  min-width: 5.5rem;
+}
+
+.slots-empty {
+  margin: 0;
+  padding: 0.8rem 1rem;
+  background: #fdf7ec;
+  border-left: 3px solid var(--amber);
+  font-size: 0.87rem;
+  color: #5c4a1e;
+}
+
+/* ------------------------------------------------------- notes and errors */
+
+.urgent-note {
+  border-left: 3px solid var(--clay);
+  background: #fdf6f4;
+  padding: 0.8rem 1rem;
+  margin: 0 0 1.5rem;
+  font-size: 0.87rem;
+  line-height: 1.5;
+  color: #5c3229;
+}
+.urgent-note strong {
+  color: var(--clay);
+}
+
+.form-error {
+  margin: 0 0 1rem;
+  padding: 0.7rem 0.9rem;
+  background: #fdf6f4;
+  border-left: 3px solid var(--clay);
+  color: var(--clay);
+  font-size: 0.88rem;
+  font-weight: 500;
+}
+
+/* ------------------------------------------------------------------ submit */
+
+.submit {
+  width: 100%;
+  border: 0;
+  border-radius: 2px;
+  background: var(--apothec);
+  color: var(--paper);
+  font-family: var(--body);
+  font-size: 1rem;
+  font-weight: 600;
+  padding: 0.95rem 1.25rem;
+  cursor: pointer;
+  transition: background 0.14s, transform 0.08s;
+}
+.submit:hover:not(:disabled) {
+  background: var(--apothec-dark);
+}
+.submit:active:not(:disabled) {
+  transform: translateY(1px);
+}
+.submit:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+.submit:disabled {
+  opacity: 0.55;
+  cursor: progress;
+}
+
+/* ==========================================================================
+   The slip — signature element
+   ========================================================================== */
+
+.slip {
+  background: var(--paper);
+  box-shadow:
+    0 1px 2px rgba(18, 36, 28, 0.06),
+    0 16px 40px -14px rgba(18, 36, 28, 0.22);
+  animation: slip-print 0.5s cubic-bezier(0.2, 0.8, 0.3, 1);
+  transform-origin: top center;
+}
+
+@keyframes slip-print {
+  from { opacity: 0; transform: scaleY(0.9) translateY(-10px); }
+  to   { opacity: 1; transform: scaleY(1) translateY(0); }
+}
+
+/* Torn-off perforation along the top edge. */
+.slip__perf {
+  height: 10px;
+  background:
+    repeating-linear-gradient(
+      -45deg,
+      var(--paper) 0 6px,
+      transparent 6px 12px
+    );
+  filter: drop-shadow(0 -1px 0 var(--paper));
+  margin-top: -10px;
+}
+
+.slip__body {
+  padding: clamp(1.5rem, 5vw, 2.5rem);
+  font-family: var(--mono);
+}
+
+.slip__head {
+  margin: 0 0 1.5rem;
+  padding-bottom: 0.9rem;
+  border-bottom: 1px dashed var(--rule);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: var(--ink-soft);
+}
+
+.slip__rows {
+  margin: 0;
+}
+
+.slip__row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem;
+  padding: 0.45rem 0;
+}
+.slip__row dt {
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  flex: none;
+}
+.slip__row dd {
+  margin: 0;
+  text-align: right;
+  font-size: 0.88rem;
+  word-break: break-word;
+}
+.slip__row--big dd {
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: 1.15rem;
+  letter-spacing: -0.02em;
+}
+
+/* ------------------------------------------------------------ status strip */
+
+.slip__status {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin: 1.25rem 0;
+  padding: 0.75rem 0.9rem;
+  border-radius: 2px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.slip__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex: none;
+  background: currentColor;
+}
+
+.slip__status[data-state='pending'] {
+  background: #fdf7ec;
+  color: var(--amber);
+}
+.slip__status[data-state='pending'] .slip__dot {
+  animation: pulse 1.3s ease-in-out infinite;
+}
+.slip__status[data-state='confirmed'] {
+  background: #edf6f2;
+  color: var(--apothec);
+}
+.slip__status[data-state='rejected'],
+.slip__status[data-state='error'] {
+  background: #fdf6f4;
+  color: var(--clay);
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: 0.35; transform: scale(0.75); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .slip,
+  .slip__dot {
+    animation: none;
+  }
+}
+
+/* --------------------------------------------------------- slip messaging */
+
+.slip__outcome {
+  padding-top: 1rem;
+  border-top: 1px dashed var(--rule);
+}
+
+.slip__message {
+  margin: 1.25rem 0 0;
+  padding-top: 1.25rem;
+  border-top: 1px dashed var(--rule);
+  font-family: var(--body);
+  font-size: 0.94rem;
+  line-height: 1.6;
+  color: var(--ink-soft);
+  white-space: pre-wrap;
+}
+.slip__message:empty {
+  display: none;
+}
+
+.slip__foot {
+  margin: 1.5rem 0 0;
+  font-size: 0.72rem;
+  color: var(--ink-faint);
+  letter-spacing: 0.03em;
+}
+
+.slip__again {
+  margin-top: 1.5rem;
+  width: 100%;
+  background: none;
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+  padding: 0.75rem;
+  font-family: var(--body);
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--ink);
+  cursor: pointer;
+  transition: border-color 0.14s, color 0.14s;
+}
+.slip__again:hover {
+  border-color: var(--apothec);
+  color: var(--apothec);
+}
+.slip__again:focus-visible {
+  outline: 2px solid var(--apothec);
+  outline-offset: 2px;
+}
+
+/* ------------------------------------------------------------------ footer */
+
+.footer {
+  max-width: 44rem;
+  margin: 0 auto;
+  width: 100%;
+  padding: 0 var(--gutter) 2.5rem;
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  color: var(--ink-faint);
+  letter-spacing: 0.02em;
+}
+.footer p {
+  margin: 0 0 0.3rem;
+}
+
+/* ------------------------------------------------------------------ mobile */
+
+@media (max-width: 30rem) {
+  .field-row {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+  .slip__row {
+    flex-direction: column;
+    gap: 0.1rem;
+  }
+  .slip__row dd {
+    text-align: left;
+  }
+}

@@ -1,0 +1,248 @@
+{
+  "identifier": "clinic_triage_agent",
+  "title": "Clinic triage agent",
+  "description": "Fires whenever a pending appointment is filed. Pulls the live doctor roster and existing bookings from the catalog, asks the AI to fit the request against real availability, then confirms with an assigned doctor or rejects with a reason - and emails the patient either way.",
+  "icon": "Alert",
+  "category": "Clinic",
+  "allowAnyoneToViewRuns": true,
+  "nodes": [
+    {
+      "identifier": "trigger",
+      "variables": {},
+      "verbose": false,
+      "config": {
+        "type": "EVENT_TRIGGER",
+        "published": true,
+        "event": { "type": "ENTITY_CREATED", "blueprintIdentifier": "clinic_appointment" },
+        "condition": {
+          "type": "JQ",
+          "combinator": "and",
+          "expressions": [".diff.after.properties.status == \"pending\""]
+        }
+      }
+    },
+    {
+      "identifier": "fetch_patient",
+      "title": "Look up patient record",
+      "variables": {},
+      "verbose": true,
+      "config": {
+        "type": "WEBHOOK",
+        "method": "GET",
+        "onFailure": "continue",
+        "url": "https://api.port.io/v1/blueprints/clinic_patient/entities/{{ .outputs.trigger.diff.after.relations.patient }}"
+      }
+    },
+    {
+      "identifier": "fetch_doctors",
+      "title": "Pull doctor roster",
+      "variables": {},
+      "verbose": true,
+      "config": {
+        "type": "WEBHOOK",
+        "method": "GET",
+        "onFailure": "terminate",
+        "url": "https://api.port.io/v1/blueprints/clinic_doctor/entities"
+      }
+    },
+    {
+      "identifier": "fetch_booked",
+      "title": "Pull existing bookings",
+      "variables": {},
+      "verbose": true,
+      "config": {
+        "type": "WEBHOOK",
+        "method": "GET",
+        "onFailure": "terminate",
+        "url": "https://api.port.io/v1/blueprints/clinic_appointment/entities"
+      }
+    },
+    {
+      "identifier": "triage",
+      "title": "Triage and assign doctor",
+      "variables": {},
+      "verbose": true,
+      "config": {
+        "type": "AI",
+        "tools": [],
+        "systemPrompt": "You are the scheduling coordinator for Northgate Clinic. You allocate patients to doctors based strictly on the roster and bookings you are given. You never diagnose, never suggest treatment, and never comment on what a patient's symptoms might mean clinically. Your only judgement about symptoms is whether they describe a medical emergency that belongs in an emergency department rather than a scheduled clinic visit. You are careful, literal about availability rules, and you always return valid JSON matching the required schema.",
+        "userPrompt": "The current time is {{ now | todateiso8601 }}.\n\nA new appointment request has been filed. Decide whether to approve it and to which doctor.\n\n## REQUEST\n- Appointment id: {{ .outputs.trigger.diff.after.identifier }}\n- Department requested: {{ .outputs.trigger.diff.after.properties.requested_specialty }}\n- Slot requested: {{ .outputs.trigger.diff.after.properties.requested_datetime }}\n- Urgency stated by patient: {{ .outputs.trigger.diff.after.properties.urgency }}\n- Reason for visit: {{ .outputs.trigger.diff.after.properties.symptoms }}\n- Patient: {{ .outputs.fetch_patient.response.data.entity.title // \"Unknown\" }}\n\n## DOCTOR ROSTER\n{{ .outputs.fetch_doctors.response.data.entities | map({id: .identifier, name: .title, specialty: .properties.specialty, working_days: .properties.working_days, shift_start: .properties.shift_start, shift_end: .properties.shift_end, slot_minutes: .properties.slot_minutes, max_per_day: .properties.max_daily_appointments, accepting_new_patients: .properties.accepting_new_patients, room: .properties.room, languages: .properties.languages}) | tojson }}\n\n## ALREADY CONFIRMED BOOKINGS\n{{ .outputs.fetch_booked.response.data.entities | map(select(.properties.status == \"confirmed\")) | map({doctor: .relations.doctor, at: .properties.confirmed_datetime}) | tojson }}\n\n## RULES\n1. The doctor's specialty must exactly equal the requested department. Never route across departments.\n2. The doctor must have accepting_new_patients set to true.\n3. Treat all times as clinic local time. The requested weekday must appear in working_days (mon, tue, wed, thu, fri, sat, sun) and the time must fall inside shift_start to shift_end.\n4. Never place two confirmed bookings with the same doctor at the same timestamp, and never exceed max_per_day for that doctor on that date.\n5. If the exact requested slot does not fit, approve anyway at the nearest valid alternative within the next 7 days, aligned to that doctor's slot_minutes. A shifted slot is still an approval - say clearly in patient_message that the time was moved and why.\n6. Reject only when: no doctor in that department is accepting patients, or no valid slot exists in the next 14 days, or the requested time is in the past.\n7. If the reason for visit describes a possible emergency - chest pain with breathlessness, heavy bleeding, stroke signs such as facial droop or sudden weakness, loss of consciousness, difficulty breathing - reject the booking, set urgency to urgent, and tell the patient to go to an emergency department or call emergency services now. Do not schedule them.\n8. Otherwise set urgency to routine, soon, or urgent based on how time-sensitive the reason for visit is.\n9. confirmed_datetime must be ISO 8601 UTC ending in Z, for example 2026-09-02T10:30:00Z. Use an empty string when rejecting.\n10. doctor_identifier must be copied exactly from the id field in the roster.\n\n## PATIENT MESSAGE\nWrite patient_message as 3 to 5 warm, plain sentences addressed to the patient. No markdown, no headings, no bullet points. On approval include the doctor's name, the department, the date and time written out readably, the room number, and a line asking them to arrive 10 minutes early with any previous prescriptions or reports. On rejection explain plainly what happened and what to do next.\n\n## REASONING\nWrite reasoning_markdown as a short markdown audit trail: which doctors you considered, why you eliminated each one, and why the final slot was chosen. This is read by clinic staff, not the patient.",
+        "outputSchema": {
+          "type": "object",
+          "properties": {
+            "decision": { "type": "string", "description": "Exactly 'approved' or 'rejected'" },
+            "doctor_identifier": {
+              "type": "string",
+              "description": "The id field of the chosen doctor from the roster. Empty string if rejected."
+            },
+            "doctor_name": {
+              "type": "string",
+              "description": "Display name of the chosen doctor. Empty string if rejected."
+            },
+            "confirmed_datetime": {
+              "type": "string",
+              "description": "ISO 8601 UTC timestamp ending in Z. Empty string if rejected."
+            },
+            "urgency": { "type": "string", "description": "routine, soon, or urgent" },
+            "reason": {
+              "type": "string",
+              "description": "One short sentence summarising the decision, for staff."
+            },
+            "reasoning_markdown": {
+              "type": "string",
+              "description": "Markdown audit trail of how the decision was reached."
+            },
+            "patient_message": {
+              "type": "string",
+              "description": "Plain-language message sent directly to the patient."
+            }
+          },
+          "required": ["decision", "reason", "reasoning_markdown", "patient_message", "urgency"]
+        }
+      }
+    },
+    {
+      "identifier": "route",
+      "title": "Approved or rejected?",
+      "variables": {},
+      "verbose": true,
+      "config": {
+        "type": "CONDITION",
+        "outlets": [
+          {
+            "identifier": "approved",
+            "title": "Approved",
+            "expression": "(.outputs.triage.response | fromjson | .decision) == \"approved\"",
+            "statusLabel": { "text": "Approved", "variant": "success" }
+          }
+        ]
+      }
+    },
+    {
+      "identifier": "confirm",
+      "title": "Confirm and assign",
+      "variables": {},
+      "verbose": true,
+      "config": {
+        "type": "UPSERT_ENTITY",
+        "blueprintIdentifier": "clinic_appointment",
+        "onFailure": "terminate",
+        "mapping": {
+          "identifier": "{{ .outputs.trigger.diff.after.identifier }}",
+          "title": "{{ .outputs.fetch_patient.response.data.entity.title // \"Patient\" }} - {{ .outputs.triage.response | fromjson | .doctor_name }}",
+          "properties": {
+            "status": "confirmed",
+            "confirmed_datetime": "{{ .outputs.triage.response | fromjson | .confirmed_datetime }}",
+            "decision_reason": "{{ .outputs.triage.response | fromjson | .reason }}",
+            "triage_reasoning": "{{ .outputs.triage.response | fromjson | .reasoning_markdown }}",
+            "patient_message": "{{ .outputs.triage.response | fromjson | .patient_message }}",
+            "urgency": "{{ .outputs.triage.response | fromjson | .urgency }}",
+            "notification_channel": "email",
+            "requested_datetime": "{{ .outputs.trigger.diff.after.properties.requested_datetime }}",
+            "requested_specialty": "{{ .outputs.trigger.diff.after.properties.requested_specialty }}",
+            "symptoms": "{{ .outputs.trigger.diff.after.properties.symptoms }}",
+            "source": "{{ .outputs.trigger.diff.after.properties.source // \"web_form\" }}"
+          },
+          "relations": {
+            "patient": "{{ .outputs.trigger.diff.after.relations.patient }}",
+            "doctor": "{{ .outputs.triage.response | fromjson | .doctor_identifier }}"
+          }
+        }
+      }
+    },
+    {
+      "identifier": "notify_confirm",
+      "title": "Email the patient",
+      "variables": {},
+      "verbose": true,
+      "config": {
+        "type": "WEBHOOK",
+        "method": "POST",
+        "onFailure": "continue",
+        "url": "https://api.resend.com/emails",
+        "headers": {
+          "Authorization": "Bearer {{ .secrets[\"RESEND_API_KEY\"] }}",
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "from": "Northgate Clinic <onboarding@resend.dev>",
+          "to": ["{{ .outputs.fetch_patient.response.data.entity.properties.email }}"],
+          "subject": "Your appointment is confirmed - Northgate Clinic",
+          "text": "{{ .outputs.triage.response | fromjson | .patient_message }}"
+        }
+      }
+    },
+    {
+      "identifier": "reject",
+      "title": "Reject with reason",
+      "variables": {},
+      "verbose": true,
+      "config": {
+        "type": "UPSERT_ENTITY",
+        "blueprintIdentifier": "clinic_appointment",
+        "onFailure": "terminate",
+        "mapping": {
+          "identifier": "{{ .outputs.trigger.diff.after.identifier }}",
+          "properties": {
+            "status": "rejected",
+            "decision_reason": "{{ .outputs.triage.response | fromjson | .reason }}",
+            "triage_reasoning": "{{ .outputs.triage.response | fromjson | .reasoning_markdown }}",
+            "patient_message": "{{ .outputs.triage.response | fromjson | .patient_message }}",
+            "urgency": "{{ .outputs.triage.response | fromjson | .urgency }}",
+            "notification_channel": "email",
+            "requested_datetime": "{{ .outputs.trigger.diff.after.properties.requested_datetime }}",
+            "requested_specialty": "{{ .outputs.trigger.diff.after.properties.requested_specialty }}",
+            "symptoms": "{{ .outputs.trigger.diff.after.properties.symptoms }}",
+            "source": "{{ .outputs.trigger.diff.after.properties.source // \"web_form\" }}"
+          },
+          "relations": {
+            "patient": "{{ .outputs.trigger.diff.after.relations.patient }}"
+          }
+        }
+      }
+    },
+    {
+      "identifier": "notify_reject",
+      "title": "Email the patient",
+      "variables": {},
+      "verbose": true,
+      "config": {
+        "type": "WEBHOOK",
+        "method": "POST",
+        "onFailure": "continue",
+        "url": "https://api.resend.com/emails",
+        "headers": {
+          "Authorization": "Bearer {{ .secrets[\"RESEND_API_KEY\"] }}",
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "from": "Northgate Clinic <onboarding@resend.dev>",
+          "to": ["{{ .outputs.fetch_patient.response.data.entity.properties.email }}"],
+          "subject": "About your appointment request - Northgate Clinic",
+          "text": "{{ .outputs.triage.response | fromjson | .patient_message }}"
+        }
+      }
+    }
+  ],
+  "connections": [
+    { "sourceIdentifier": "trigger", "targetIdentifier": "fetch_patient" },
+    { "sourceIdentifier": "fetch_patient", "targetIdentifier": "fetch_doctors" },
+    { "sourceIdentifier": "fetch_doctors", "targetIdentifier": "fetch_booked" },
+    { "sourceIdentifier": "fetch_booked", "targetIdentifier": "triage" },
+    { "sourceIdentifier": "triage", "targetIdentifier": "route" },
+    {
+      "sourceIdentifier": "route",
+      "sourceOutletIdentifier": "approved",
+      "targetIdentifier": "confirm",
+      "description": "Agent approved the booking"
+    },
+    {
+      "sourceIdentifier": "route",
+      "fallback": true,
+      "targetIdentifier": "reject",
+      "description": "Agent could not place the booking"
+    },
+    { "sourceIdentifier": "confirm", "targetIdentifier": "notify_confirm" },
+    { "sourceIdentifier": "reject", "targetIdentifier": "notify_reject" }
+  ]
+}

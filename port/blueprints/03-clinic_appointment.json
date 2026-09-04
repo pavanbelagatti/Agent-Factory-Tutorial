@@ -1,0 +1,80 @@
+{
+  "identifier": "clinic_appointment",
+  "title": "Appointment",
+  "icon": "Calendar",
+  "schema": {
+    "properties": {
+      "status": {
+        "title": "Status",
+        "type": "string",
+        "enum": ["pending", "confirmed", "rejected", "cancelled", "completed"],
+        "enumColors": {
+          "pending": "yellow",
+          "confirmed": "green",
+          "rejected": "red",
+          "cancelled": "lightGray",
+          "completed": "blue"
+        }
+      },
+      "requested_specialty": {
+        "title": "Requested specialty",
+        "type": "string",
+        "enum": ["paediatrics", "general_medicine", "dermatology", "orthopaedics", "cardiology", "ent"],
+        "enumColors": {
+          "paediatrics": "pink",
+          "general_medicine": "blue",
+          "dermatology": "orange",
+          "orthopaedics": "purple",
+          "cardiology": "red",
+          "ent": "turquoise"
+        }
+      },
+      "requested_datetime": { "title": "Requested slot", "type": "string", "format": "date-time" },
+      "confirmed_datetime": { "title": "Confirmed slot", "type": "string", "format": "date-time" },
+      "symptoms": { "title": "Reason for visit", "type": "string" },
+      "urgency": {
+        "title": "Urgency",
+        "type": "string",
+        "enum": ["routine", "soon", "urgent"],
+        "enumColors": { "routine": "lightGray", "soon": "orange", "urgent": "red" }
+      },
+      "triage_reasoning": {
+        "title": "Agent reasoning",
+        "type": "string",
+        "format": "markdown",
+        "description": "Why the agent made this decision - the audit trail"
+      },
+      "decision_reason": { "title": "Decision reason", "type": "string" },
+      "patient_message": {
+        "title": "Message sent to patient",
+        "type": "string",
+        "format": "markdown"
+      },
+      "source": {
+        "title": "Booking source",
+        "type": "string",
+        "enum": ["web_form", "front_desk", "phone"],
+        "enumColors": { "web_form": "blue", "front_desk": "purple", "phone": "olive" }
+      },
+      "notification_channel": { "title": "Notified via", "type": "string" }
+    },
+    "required": ["status"]
+  },
+  "calculationProperties": {},
+  "aggregationProperties": {},
+  "mirrorProperties": {},
+  "relations": {
+    "patient": {
+      "title": "Patient",
+      "target": "clinic_patient",
+      "required": false,
+      "many": false
+    },
+    "doctor": {
+      "title": "Assigned doctor",
+      "target": "clinic_doctor",
+      "required": false,
+      "many": false
+    }
+  }
+}
